@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, session
 from flask_sqlalchemy import SQLAlchemy
 from uuid import uuid4, UUID
 from sqlalchemy.dialects.postgresql import UUID
@@ -6,6 +6,8 @@ from sqlalchemy.dialects.postgresql import UUID
 # from flask_migrate import Migrate
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'JD56JVDSN4346KCANSCLNnzjksfnajknkn23'
+
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:postgres@localhost:5432/tic_tac_toe_db"
 db = SQLAlchemy(app)
 
@@ -41,7 +43,16 @@ with app.app_context():
 
 @app.route('/')
 def home():
-    return 'Tic Tac Toe'
+    session.permanent = True
+    if 'user_id' in session:
+        user_id = session['user_id']
+    else:
+        new_user = User(name="Vardenis")
+        db.session.add(new_user)
+        db.session.commit()
+        session['user_id'] = new_user.id
+        user_id = session['user_id']
+    return f'Tic Tac Toe {user_id}'
 
 
 if __name__ == "__main__":
