@@ -1,4 +1,4 @@
-from flask import Flask, session, render_template
+from flask import Flask, session, render_template, redirect, url_for, request
 from flask_sqlalchemy import SQLAlchemy
 from uuid import uuid4, UUID
 from sqlalchemy.dialects.postgresql import UUID
@@ -55,6 +55,18 @@ def get_game_id(user_id):
     return game_id[0]
 
 
+def game_waiting_second_player():
+    game_x = db.session.query(Game).filter(Game.user_id_x == None).first()
+    game_o = db.session.query(Game).filter(Game.user_id_o == None).first()
+    if game_x is not None:
+        return game_x.id, "user_id_x"
+    elif game_o is not None:
+        return game_o.id, "user_id_o"
+    else:
+        return None
+    # game = db.session.query(Game).filter(Game.user_id_x == None).first()
+
+
 @app.route('/')
 def home():
     session.permanent = True
@@ -69,16 +81,48 @@ def home():
     # check if user is in in-progress game
     if is_part_of_game(user_id):
         game_id = get_game_id(user_id)
-        print(game_id)
+        print("You are part of the game ", game_id)
+        return redirect(url_for("game", game_id=game_id))
     else:
-        new_game = Game(user_id_x=user_id)
-        db.session.add(new_game)
-        db.session.commit()
-        game_id = new_game.id
-        print("New game ", game_id)
-
+        # check if there is a game waiting for player 2
+        if game_waiting_second_player():
+            available_spot = game_waiting_second_player()
+            game = Game.query.get(available_spot[0])
+            player_type = available_spot[1]
+            setattr(game, player_type, user_id)
+            db.session.commit()
+            print("You joined game ", game.id)
+            return redirect(url_for("game", game_id=game.id))
+        else:
+            new_game = Game(user_id_x=user_id)
+            db.session.add(new_game)
+            db.session.commit()
+            game_id = new_game.id
+            print("Waiting for second player to join game: ", game_id)
+            return redirect(url_for("game", game_id=game_id))
     return render_template("index.html", user_id=user_id)
 
+
+@app.route('/game/<int:game_id>', methods=['GET', 'POST'])
+def game(game_id):
+    game = Game.query.get(game_id)
+    player_x = game.user_id_x
+    player_o = game.user_id_o
+    if request.method == 'POST':
+        redirect(url_for("moves", game_id=game_id))
+    return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o)
+
+
+@app.route('/game/<int:game_id>/moves', methods=['GET', 'POST'])
+def moves(game_id):
+    print("moves")
+    current_game = Game.query.get(game_id)
+    player_x = current_game.user_id_x
+    player_o = current_game.user_id_o
+    if request.method == 'POST':
+        position = request.form.get("position")
+        print(position)
+    return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o)
 
 if __name__ == "__main__":
     app.run(debug=True)
