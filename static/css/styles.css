@@ -5,3 +5,28 @@ body {
 h1, h3{
     font-family: 'Share Tech Mono', monospace;
 }
+
+
+.board {
+   display: grid;
+   grid-template-columns: 100px 100px 100px;
+   grid-template-rows: 100px 100px 100px;
+   column-gap: 7px;
+   row-gap: 7px;
+   background-color: black;
+   width: 314px;
+}
+
+.cell {
+    text-align: center;
+    background-color: white;
+}
+
+input[type=submit] {
+    width: 100px;
+    height: 100px;
+}
+
+input[type=submit]:disabled{
+    background-color: black;
+}
