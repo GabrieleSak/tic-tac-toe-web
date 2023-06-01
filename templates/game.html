@@ -7,52 +7,19 @@
 <h3>Player X: {{player_x}}</h3>
 <h3>Player O: {{player_o}}</h3>
 
-
-
 <div class="board">
-    <div data-cell-index=1 class="cell">
+{% for i in range(1,10) %}
+    {% if i in x_positions %}
+        {% set sign = "X" %}
+    {% elif i in o_positions %}
+        {% set sign = "O" %}
+    {% else %}
+        {% set sign = i %}
+    {% endif %}
+    <div data-cell-index={{i}} class="cell">
         <form method="post">
-            <input type="submit" name="position" value="1">
+            <input type="submit" name="position" value="{{sign}}">
         </form>
     </div>
-    <div data-cell-index=2 class="cell">
-        <form method="post">
-            <input type="submit" name="position" value="2">
-        </form>
-    </div>
-    <div data-cell-index=3 class="cell">
-        <form method="post">
-            <input type="submit" name="position" value="3">
-        </form>
-    </div>
-    <div data-cell-index=4 class="cell">
-        <form method="post">
-            <input type="submit" name="position" value="4">
-        </form>
-    </div>
-    <div data-cell-index=5 class="cell">
-        <form method="post">
-            <input type="submit" name="position" value="5">
-        </form>
-    </div>
-    <div data-cell-index=6 class="cell">
-        <form method="post">
-            <input type="submit" name="position" value="6">
-        </form>
-    </div>
-    <div data-cell-index=7 class="cell">
-        <form method="post">
-            <input type="submit" name="position" value="7">
-        </form>
-    </div>
-    <div data-cell-index=8 class="cell">
-        <form method="post">
-            <input type="submit" name="position" value="8">
-        </form>
-    </div>
-    <div data-cell-index=9 class="cell">
-        <form method="post">
-            <input type="submit" name="position" value="9">
-        </form>
-    </div>
+{% endfor %}
 </div>
