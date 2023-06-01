@@ -1,3 +1,5 @@
+import random
+
 from flask import Flask, session, render_template, redirect, url_for, request
 from flask_sqlalchemy import SQLAlchemy
 from uuid import uuid4, UUID
@@ -64,7 +66,6 @@ def game_waiting_second_player():
         return game_o.id, "user_id_o"
     else:
         return None
-    # game = db.session.query(Game).filter(Game.user_id_x == None).first()
 
 
 @app.route('/')
@@ -103,26 +104,56 @@ def home():
     return render_template("index.html", user_id=user_id)
 
 
+def player_to_move(game_id):
+    game = Game.query.get(game_id)
+    players = [game.user_id_x, game.user_id_o]
+    last_move = db.session.query(Move).filter_by(game_id=game_id).order_by(Move.id.desc()).first()
+    if last_move is None:
+        i = random.randint(0, 1)
+        next_player = players[i]
+        print("random ", next_player)
+    else:
+        last_player = last_move.user_id
+        players.remove(last_player)
+        next_player = players[0]
+    return next_player
+
+
 @app.route('/game/<int:game_id>', methods=['GET', 'POST'])
 def game(game_id):
     game = Game.query.get(game_id)
     player_x = game.user_id_x
     player_o = game.user_id_o
+    x_moves = db.session.query(Move).filter_by(game_id=game_id, user_id=player_x).all()
+    x_positions = [move.position for move in x_moves]
+    o_moves = db.session.query(Move).filter_by(game_id=game_id, user_id=player_o).all()
+    o_positions = [move.position for move in o_moves]
+
+    if player_x is not None and player_o is not None:
+        next_player = player_to_move(game_id)
+    else:
+        print("waiting for a second player")
+
     if request.method == 'POST':
-        redirect(url_for("moves", game_id=game_id))
-    return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o)
+        if session['user_id'] == next_player:
+            position = request.form.get("position")
+            return redirect(url_for("moves", game_id=game_id, position=position))
+    return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o, x_positions=x_positions,
+                           o_positions=o_positions)
 
 
 @app.route('/game/<int:game_id>/moves', methods=['GET', 'POST'])
 def moves(game_id):
-    print("moves")
-    current_game = Game.query.get(game_id)
-    player_x = current_game.user_id_x
-    player_o = current_game.user_id_o
-    if request.method == 'POST':
-        position = request.form.get("position")
-        print(position)
-    return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o)
+    position = request.args.get('position')
+    new_move = Move(
+        game_id=game_id,
+        user_id=session['user_id'],
+        position=position
+    )
+    db.session.add(new_move)
+    db.session.commit()
+    return redirect(url_for("game", game_id=game_id))
+
 
 if __name__ == "__main__":
     app.run(debug=True)
