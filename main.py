@@ -30,6 +30,7 @@ class Game(db.Model):
 
 class Move(db.Model):
     __tablename__ = "moves"
+    __table_args__ = (db.UniqueConstraint('game_id', 'position'),)
     id = db.Column(db.Integer, primary_key=True)
     game_id = db.Column(db.Integer, db.ForeignKey('games.id'))
     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'))
@@ -119,6 +120,13 @@ def player_to_move(game_id):
     return next_player
 
 
+def is_move_legal(game_id, move):
+    if db.session.query(Move).filter_by(game_id=game_id, position=move).first() is None:
+        return True
+    else:
+        return False
+
+
 @app.route('/game/<int:game_id>', methods=['GET', 'POST'])
 def game(game_id):
     game = Game.query.get(game_id)
@@ -137,9 +145,12 @@ def game(game_id):
     if request.method == 'POST':
         if session['user_id'] == next_player:
             position = request.form.get("position")
-            return redirect(url_for("moves", game_id=game_id, position=position))
+            if position in ["X", "O"]:
+                print("Illegal move!")
+            else:
+                return redirect(url_for("moves", game_id=game_id, position=position))
     return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o, x_positions=x_positions,
-                           o_positions=o_positions)
+                           o_positions=o_positions, next_player=next_player)
 
 
 @app.route('/game/<int:game_id>/moves', methods=['GET', 'POST'])
