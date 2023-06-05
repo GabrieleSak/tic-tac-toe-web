@@ -1,8 +1,11 @@
 import random
+from functools import wraps
 
-from flask import Flask, session, render_template, redirect, url_for, request
+from flask import Flask, session, render_template, redirect, url_for, request, abort
 from flask_sqlalchemy import SQLAlchemy
 from uuid import uuid4, UUID
+
+from sqlalchemy import or_
 from sqlalchemy.dialects.postgresql import UUID
 from flask_migrate import Migrate
 
@@ -30,6 +33,7 @@ class Game(db.Model):
     user_id_o = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'))
     moves = db.relationship("Move")
     first_player = db.Column(db.String())
+    result = db.Column(db.String())
 
 
 class Move(db.Model):
@@ -45,6 +49,19 @@ class Move(db.Model):
 with app.app_context():
     db.create_all()
     db.session.commit()
+
+
+def player_only(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        game_id = kwargs['game_id']
+        games = [g.id for g in db.session.query(Game).filter(
+            or_(Game.user_id_x == session['user_id'], Game.user_id_o == session['user_id']))]
+        if game_id not in games:
+            return abort(403)
+        return f(*args, **kwargs)
+
+    return decorated_function
 
 
 def is_part_of_game(user_id):
@@ -142,6 +159,7 @@ def is_move_legal(game_id, move):
 
 
 @app.route('/game/<int:game_id>', methods=['GET'])
+@player_only
 def game(game_id):
     game = Game.query.get(game_id)
     player_x = game.user_id_x
@@ -172,6 +190,7 @@ def game(game_id):
 
 
 @app.route('/game/<int:game_id>/moves', methods=['POST'])
+@player_only
 def moves(game_id):
     print("moving")
     if request.method == 'POST':
