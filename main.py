@@ -5,7 +5,7 @@ from flask import Flask, session, render_template, redirect, url_for, request, a
 from flask_sqlalchemy import SQLAlchemy
 from uuid import uuid4, UUID
 
-from sqlalchemy import or_
+from sqlalchemy import or_, and_
 from sqlalchemy.dialects.postgresql import UUID
 from flask_migrate import Migrate
 
@@ -50,15 +50,6 @@ with app.app_context():
     db.create_all()
     db.session.commit()
 
-winnings = [[1, 2, 3],
-            [4, 5, 6],
-            [7, 8, 9],
-            [1, 4, 7],
-            [2, 5, 8],
-            [3, 6, 9],
-            [1, 5, 9],
-            [3, 5, 7]]
-
 
 def player_only(f):
     @wraps(f)
@@ -74,17 +65,17 @@ def player_only(f):
 
 
 def is_part_of_game(user_id):
-    if (db.session.query(Game).filter_by(user_id_x=user_id).first() is not None
-            or db.session.query(Game).filter_by(user_id_o=user_id).first() is not None):
+    if (db.session.query(Game).filter(and_(Game.user_id_x == user_id, Game.result is None)).first() is not None
+            or db.session.query(Game).filter(and_(Game.user_id_o == user_id, Game.result is None)).first() is not None):
         return True
     return False
 
 
 def get_game_id(user_id):
-    if db.session.query(Game).filter_by(user_id_x=user_id).first() is not None:
-        game_id = [r.id for r in db.session.query(Game).filter_by(user_id_x=user_id)]
-    elif db.session.query(Game).filter_by(user_id_o=user_id).first() is not None:
-        game_id = [r.id for r in db.session.query(Game).filter_by(user_id_o=user_id)]
+    if db.session.query(Game).filter(and_(Game.user_id_x == user_id, Game.result is None)).first() is not None:
+        game_id = [r.id for r in db.session.query(Game).filter(and_(Game.user_id_x == user_id, Game.result is None))]
+    elif db.session.query(Game).filter(and_(Game.user_id_o == user_id, Game.result is None)).first() is not None:
+        game_id = [r.id for r in db.session.query(Game).filter(and_(Game.user_id_o == user_id, Game.result is None))]
     return game_id[0]
 
 
@@ -167,6 +158,39 @@ def is_move_legal(game_id, move):
         return False
 
 
+def game_end(x_positions, o_positions):
+    winnings = [[1, 2, 3],
+                [4, 5, 6],
+                [7, 8, 9],
+                [1, 4, 7],
+                [2, 5, 8],
+                [3, 6, 9],
+                [1, 5, 9],
+                [3, 5, 7]]
+
+    x_positions.sort()
+    o_positions.sort()
+
+    for w_list in winnings:
+        print("w", w_list)
+        print("x", x_positions)
+        print("o", o_positions)
+        check_x = all(item in x_positions for item in w_list)
+        check_o = all(item in o_positions for item in w_list)
+        if check_x:
+            print("X wins")
+            return "x"
+        if check_o:
+            print("O wins")
+            return "o"
+
+    if len(x_positions) + len(o_positions) == 9:
+        print("DRAW")
+        return "d"
+    else:
+        return False
+
+
 @app.route('/game/<int:game_id>', methods=['GET'])
 @player_only
 def game(game_id):
@@ -185,6 +209,16 @@ def game(game_id):
     else:
         last_move_pos = last_move.position
 
+    if game_end(x_positions, o_positions):
+        result = game_end(x_positions, o_positions)
+        print(result)
+        game.result = result
+        db.session.commit()
+        return render_template("game_end.html", game_id=game_id, player_x=player_x, player_o=player_o,
+                               x_positions=x_positions,
+                               o_positions=o_positions, last_pos=last_move_pos, res=result)
+
+
     if player_x is None or player_o is None:
         print("waiting for a second player")
     else:
@@ -201,15 +235,10 @@ def game(game_id):
 @app.route('/game/<int:game_id>/moves', methods=['POST'])
 @player_only
 def moves(game_id):
-    print("moving")
     if request.method == 'POST':
         next_player = request.args.get('next_player')
-        print("next", next_player)
-        print(str(session['user_id']))
-        print(str(session['user_id']) == next_player)
         if str(session['user_id']) == next_player:
             position = request.form.get("position")
-            print("pos", position)
             if position in ["X", "O"]:
                 print("Illegal move!")
             else:
