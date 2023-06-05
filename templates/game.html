@@ -4,6 +4,8 @@
 
 <h3>Game {{game_id}}</h3>
 
+<h3>Starts {{first_player}}</h3>
+
 {% if session['user_id'] == next_player %}
     <h3>YOUR TURN!</h3>
 {% endif %}
@@ -18,16 +20,27 @@
 
 <div class="board">
 {% for i in range(1,10) %}
+
+
+
     {% if i in x_positions %}
         {% set sign = "X" %}
+        {% set class = "cell-x" %}
     {% elif i in o_positions %}
         {% set sign = "O" %}
+        {% set class = "cell-o" %}
     {% else %}
         {% set sign = i %}
+        {% set class = "cell-input" %}
     {% endif %}
+
+    {% if i == last_pos %}
+        {% set class = "last-move" %}
+    {% endif %}
+
     <div data-cell-index={{i}} class="cell">
-        <form method="post">
-            <input type="submit" name="position" value="{{sign}}">
+        <form action="{{ url_for('moves', next_player=next_player, game_id=game_id) }}" method="post">
+            <input id="cell-{{i}}" class={{class}}  type="submit" name="position" value="{{sign}}">
         </form>
     </div>
 {% endfor %}
