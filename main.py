@@ -4,6 +4,8 @@ from flask import Flask, session, render_template, redirect, url_for, request
 from flask_sqlalchemy import SQLAlchemy
 from uuid import uuid4, UUID
 from sqlalchemy.dialects.postgresql import UUID
+from flask_migrate import Migrate
+
 from config import Config
 
 # from flask_migrate import Migrate
@@ -11,6 +13,7 @@ from config import Config
 app = Flask(__name__)
 app.config.from_object(Config)
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 
 class User(db.Model):
@@ -26,6 +29,7 @@ class Game(db.Model):
     user_id_x = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'))
     user_id_o = db.Column(UUID(as_uuid=True), db.ForeignKey('users.id'))
     moves = db.relationship("Move")
+    first_player = db.Column(db.String())
 
 
 class Move(db.Model):
@@ -105,14 +109,24 @@ def home():
     return render_template("index.html", user_id=user_id)
 
 
+def first_player(game_id):
+    game = Game.query.get(game_id)
+    if game.first_player is None:
+        i = random.randint(0, 1)
+        first_player = [game.user_id_x, game.user_id_o][i]
+        game.first_player = first_player
+        db.session.commit()
+    else:
+        first_player = game.first_player
+    return first_player
+
+
 def player_to_move(game_id):
     game = Game.query.get(game_id)
     players = [game.user_id_x, game.user_id_o]
     last_move = db.session.query(Move).filter_by(game_id=game_id).order_by(Move.id.desc()).first()
     if last_move is None:
-        i = random.randint(0, 1)
-        next_player = players[i]
-        print("random ", next_player)
+        next_player = first_player(game_id)
     else:
         last_player = last_move.user_id
         players.remove(last_player)
@@ -127,7 +141,7 @@ def is_move_legal(game_id, move):
         return False
 
 
-@app.route('/game/<int:game_id>', methods=['GET', 'POST'])
+@app.route('/game/<int:game_id>', methods=['GET'])
 def game(game_id):
     game = Game.query.get(game_id)
     player_x = game.user_id_x
@@ -137,32 +151,47 @@ def game(game_id):
     o_moves = db.session.query(Move).filter_by(game_id=game_id, user_id=player_o).all()
     o_positions = [move.position for move in o_moves]
 
-    if player_x is not None and player_o is not None:
-        next_player = player_to_move(game_id)
+    # last move
+    last_move = db.session.query(Move).filter_by(game_id=game_id).order_by(Move.id.desc()).first()
+    if last_move is None:
+        last_move_pos = ""
     else:
-        print("waiting for a second player")
+        last_move_pos = last_move.position
 
+    if player_x is None or player_o is None:
+        print("waiting for a second player")
+    else:
+        next_player = player_to_move(game_id)
+        return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o,
+                               x_positions=x_positions,
+                               o_positions=o_positions, next_player=next_player, first_player=game.first_player,
+                               last_pos=last_move_pos)
+    return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o,
+                           x_positions=x_positions,
+                           o_positions=o_positions, first_player=game.first_player)
+
+
+@app.route('/game/<int:game_id>/moves', methods=['POST'])
+def moves(game_id):
+    print("moving")
     if request.method == 'POST':
-        if session['user_id'] == next_player:
+        next_player = request.args.get('next_player')
+        print("next", next_player)
+        print(str(session['user_id']))
+        print(str(session['user_id']) == next_player)
+        if str(session['user_id']) == next_player:
             position = request.form.get("position")
+            print("pos", position)
             if position in ["X", "O"]:
                 print("Illegal move!")
             else:
-                return redirect(url_for("moves", game_id=game_id, position=position))
-    return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o, x_positions=x_positions,
-                           o_positions=o_positions, next_player=next_player)
-
-
-@app.route('/game/<int:game_id>/moves', methods=['GET', 'POST'])
-def moves(game_id):
-    position = request.args.get('position')
-    new_move = Move(
-        game_id=game_id,
-        user_id=session['user_id'],
-        position=position
-    )
-    db.session.add(new_move)
-    db.session.commit()
+                new_move = Move(
+                    game_id=game_id,
+                    user_id=session['user_id'],
+                    position=position
+                )
+                db.session.add(new_move)
+                db.session.commit()
     return redirect(url_for("game", game_id=game_id))
 
 
