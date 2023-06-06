@@ -65,17 +65,17 @@ def player_only(f):
 
 
 def is_part_of_game(user_id):
-    if (db.session.query(Game).filter(and_(Game.user_id_x == user_id, Game.result is None)).first() is not None
-            or db.session.query(Game).filter(and_(Game.user_id_o == user_id, Game.result is None)).first() is not None):
+    if (db.session.query(Game).filter(and_(Game.user_id_x == user_id, Game.result == None)).first() is not None
+            or db.session.query(Game).filter(and_(Game.user_id_o == user_id, Game.result == None)).first() is not None):
         return True
     return False
 
 
 def get_game_id(user_id):
-    if db.session.query(Game).filter(and_(Game.user_id_x == user_id, Game.result is None)).first() is not None:
-        game_id = [r.id for r in db.session.query(Game).filter(and_(Game.user_id_x == user_id, Game.result is None))]
-    elif db.session.query(Game).filter(and_(Game.user_id_o == user_id, Game.result is None)).first() is not None:
-        game_id = [r.id for r in db.session.query(Game).filter(and_(Game.user_id_o == user_id, Game.result is None))]
+    if db.session.query(Game).filter(and_(Game.user_id_x == user_id, Game.result == None)).first() is not None:
+        game_id = [r.id for r in db.session.query(Game).filter(and_(Game.user_id_x == user_id, Game.result == None))]
+    else:
+        game_id = [r.id for r in db.session.query(Game).filter(and_(Game.user_id_o == user_id, Game.result == None))]
     return game_id[0]
 
 
@@ -172,9 +172,6 @@ def game_end(x_positions, o_positions):
     o_positions.sort()
 
     for w_list in winnings:
-        print("w", w_list)
-        print("x", x_positions)
-        print("o", o_positions)
         check_x = all(item in x_positions for item in w_list)
         check_o = all(item in o_positions for item in w_list)
         if check_x:
