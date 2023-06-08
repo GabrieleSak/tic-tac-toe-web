@@ -1,0 +1,71 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+h1, h3{
+    font-family: 'Share Tech Mono', monospace;
+}
+
+
+.board {
+   display: grid;
+   grid-template-columns: 100px 100px 100px;
+   grid-template-rows: 100px 100px 100px;
+   column-gap: 7px;
+   row-gap: 7px;
+   background-color: black;
+   width: 314px;
+}
+
+.cell {
+    text-align: center;
+    background-color: white;
+    vertical-align: middle;
+}
+
+input[type=submit].last-move{
+    background-color:beige;
+    width: 100px;
+    height: 100px;
+    padding: 40px 0;
+}
+
+input[type=submit] {
+    width: 100px;
+    height: 100px;
+    background-color: white;
+}
+
+
+
+.cell-x {
+    padding: 40px 0;
+    color: blue;
+
+}
+
+.cell-o{
+padding: 40px 0;
+ color: red;
+
+}
+
+.cell-input {
+    padding: 40px 0;
+    color: white;
+}
+.button {
+  background-color: grey; /* Green */
+  border: none;
+  color: white;
+  padding: 15px 32px;
+  margin: 25px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+}
