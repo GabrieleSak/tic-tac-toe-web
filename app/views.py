@@ -88,21 +88,43 @@ def game(game_id):
         print("waiting for a second player")
     else:
         next_player = game.player_to_move()
+        if session['user_id'] == next_player:
+            is_your_move = True
+        else:
+            is_your_move = False
+        data = jsonify({"your_move": is_your_move})
+        # return redirect(url_for('turn', next_player=next_player))
         return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o,
                                x_positions=x_positions,
                                o_positions=o_positions, next_player=next_player, first_player=game.first_player,
                                last_pos=last_move_pos)
+
     return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o,
                            x_positions=x_positions,
                            o_positions=o_positions, first_player=game.first_player)
+
+
+@app.route('/current_game', methods=['GET'])
+def turn():
+    current_user = User.query.get(session['user_id'])
+    game_id = current_user.get_game_id()
+    current_game = Game.query.get(game_id)
+    player_to_move = current_game.player_to_move()
+    if session['user_id'] == player_to_move:
+        is_your_move = True
+    else:
+        is_your_move = False
+    if request.accept_mimetypes['application/json']:
+        return jsonify({"your_move": is_your_move})
+    return redirect(url_for('game'))
 
 
 @app.route('/game/<int:game_id>/moves', methods=['POST'])
 @player_only
 def moves(game_id):
     if request.method == 'POST':
-        next_player = request.args.get('next_player')
-        if str(session['user_id']) == next_player:
+        current_player = request.args.get('current_player')
+        if str(session['user_id']) == current_player:
             position = request.form.get("position")
             if position in ["X", "O"]:
                 print("Illegal move!")
