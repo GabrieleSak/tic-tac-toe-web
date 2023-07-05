@@ -1,0 +1,25 @@
+<h1>TIC TAC TOE</h1>
+
+<h3>Game {{game_id}}</h3>
+
+<h3>Starts {{first_player}}</h3>
+
+{% set session_user = session['user_id']|string() %}
+{% set next_player = next_player|string() %}
+
+<div id="player">
+    {% if session_user == next_player %}
+    <h3>YOUR TURN!</h3>
+    {% else %}
+    <h3>Wait for your opponents turn</h3>
+    {% endif %}
+</div>
+
+
+{% if session['user_id'] == player_x %}
+<h3>You are Player X</h3>
+<h3>Player X: {{player_x}}</h3>
+{% else %}
+<h3>You are Player O</h3>
+<h3>Player O: {{player_o}}</h3>
+{% endif %}

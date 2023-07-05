@@ -1,27 +1,9 @@
 {% include "base.html" %}
 
-<h1>TIC TAC TOE</h1>
+{% include "header.html" %}
 
-<h3>Game {{game_id}}</h3>
-
-<h3>Starts {{first_player}}</h3>
-
-{% if session['user_id'] == next_player %}
-    <h3>YOUR TURN!</h3>
-{% endif %}
-
-{% if session['user_id'] == player_x %}
-    <h3>You are Player X</h3>
-    <h3>Player X: {{player_x}}</h3>
-{% else %}
-    <h3>You are Player O</h3>
-    <h3>Player O: {{player_o}}</h3>
-{% endif %}
-
-<div class="board">
+<div  id="board"  class="board">
 {% for i in range(1,10) %}
-
-
 
     {% if i in x_positions %}
         {% set sign = "X" %}

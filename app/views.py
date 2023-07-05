@@ -74,6 +74,7 @@ def game(game_id):
         last_move_pos = ""
     else:
         last_move_pos = last_move.position
+    print("last posi", last_move_pos)
 
     if game.game_end(x_positions, o_positions):
         result = game.game_end(x_positions, o_positions)
@@ -88,12 +89,11 @@ def game(game_id):
         print("waiting for a second player")
     else:
         next_player = game.player_to_move()
-        if session['user_id'] == next_player:
-            is_your_move = True
-        else:
-            is_your_move = False
-        data = jsonify({"your_move": is_your_move})
-        # return redirect(url_for('turn', next_player=next_player))
+        print(type(next_player))
+        print(game.first_player)
+        print(session["user_id"])
+        print(game.first_player == str(session["user_id"]))
+
         return render_template("game.html", game_id=game_id, player_x=player_x, player_o=player_o,
                                x_positions=x_positions,
                                o_positions=o_positions, next_player=next_player, first_player=game.first_player,
